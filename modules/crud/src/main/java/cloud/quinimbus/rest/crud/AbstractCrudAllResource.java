@@ -1,6 +1,8 @@
 package cloud.quinimbus.rest.crud;
 
 import cloud.quinimbus.persistence.repositories.CRUDRepository;
+import java.util.function.Function;
+import java.util.stream.Stream;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -33,5 +35,10 @@ public abstract class AbstractCrudAllResource<T, K> {
     public Response postNew(T entity) {
         this.repository.save(entity);
         return Response.accepted().build();
+    }
+    
+    public <PT> Response getByProperty(PT property, Function<PT, Stream<T>> finderRepositoryMethod) {
+        return Response.ok(finderRepositoryMethod.apply(property).toList())
+                .build();
     }
 }
