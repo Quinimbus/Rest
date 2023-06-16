@@ -1,7 +1,8 @@
 package cloud.quinimbus.rest.crud;
 
-import cloud.quinimbus.persistence.repositories.CRUDRepository;
+import cloud.quinimbus.persistence.repositories.WeakCRUDRepository;
 import java.util.Optional;
+import java.util.function.Function;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -12,30 +13,26 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
-public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEntityResource<T, K> {
+public abstract class AbstractWeakCrudSingleResource<T, K, O> extends AbstractSingleEntityResource<T, K> {
 
-    private final CRUDRepository<T, K> repository;
+    private final Class<T> entityType;
+    private final Class<K> keyType;
+    private final Function<UriInfo, Optional<O>> owner;
+    private final WeakCRUDRepository<T, K, O> repository;
 
-    // to allow CDI proxy creation
-    public AbstractCrudSingleResource() {
-        super(null, null);
-        this.repository = null;
-    }
-
-    public AbstractCrudSingleResource(Class<T> entityType, Class<K> keyType, CRUDRepository<T, K> repository) {
+    public AbstractWeakCrudSingleResource(Class<T> entityType, Class<K> keyType, Function<UriInfo, Optional<O>> owner, WeakCRUDRepository<T, K, O> repository) {
         super(entityType, keyType);
+        this.entityType = entityType;
+        this.keyType = keyType;
+        this.owner = owner;
         this.repository = repository;
-    }
-    
-    public Optional<T> findEntityById(UriInfo uriInfo) {
-        var id = getId(uriInfo);
-        return this.repository.findOne(id);
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public Response getById(@Context UriInfo uriInfo) {
-        return this.findEntityById(uriInfo)
+        return owner.apply(uriInfo)
+                .flatMap(o -> this.repository.findOne(o, getId(uriInfo)))
                 .map(Response::ok)
                 .orElseGet(() -> Response.status(Response.Status.NOT_FOUND))
                 .build();
@@ -51,11 +48,11 @@ public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEnt
     @DELETE
     public Response deleteById(@Context UriInfo uriInfo) {
         var id = getId(uriInfo);
-        return this.repository.findOne(id)
+        return owner.apply(uriInfo).flatMap(o -> this.repository.findOne(o, id)
                 .map(e -> {
-                    this.repository.remove(id);
+                    this.repository.remove(o, id);
                     return Response.accepted();
-                })
+                }))
                 .orElseGet(() -> Response.status(Response.Status.NOT_FOUND))
                 .build();
     }
