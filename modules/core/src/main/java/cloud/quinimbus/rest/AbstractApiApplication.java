@@ -1,9 +1,9 @@
 package cloud.quinimbus.rest;
 
 import cloud.quinimbus.rest.resources.RootResource;
+import jakarta.ws.rs.core.Application;
 import java.util.HashSet;
 import java.util.Set;
-import javax.ws.rs.core.Application;
 
 public abstract class AbstractApiApplication extends Application {
 

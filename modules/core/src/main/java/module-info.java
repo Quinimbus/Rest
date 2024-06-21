@@ -5,5 +5,5 @@ module cloud.quinimbus.rest {
     requires com.fasterxml.jackson.databind;
     requires com.fasterxml.jackson.datatype.jsr310;
     requires jakarta.cdi;
-    requires java.ws.rs;
+    requires jakarta.ws.rs;
 }
