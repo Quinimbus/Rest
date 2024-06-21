@@ -16,7 +16,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 public class AbstractWeakCrudAllResource<T, K, O> {
-    
+
     private final Function<UriInfo, Optional<O>> owner;
     private final WeakCRUDRepository<T, K, O> repository;
 
@@ -24,7 +24,7 @@ public class AbstractWeakCrudAllResource<T, K, O> {
         this.owner = owner;
         this.repository = repository;
     }
-    
+
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public Response getAll(@Context UriInfo uriInfo) {
@@ -43,7 +43,7 @@ public class AbstractWeakCrudAllResource<T, K, O> {
                 .orElseGet(() -> Response.status(Response.Status.NOT_FOUND))
                 .build();
     }
-    
+
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     public Response postNew(@Context UriInfo uriInfo, T entity) {
@@ -53,8 +53,9 @@ public class AbstractWeakCrudAllResource<T, K, O> {
         this.repository.save(entity);
         return Response.accepted().build();
     }
-    
-    public <PT> Response getByProperty(UriInfo uriInfo, PT property, BiFunction<O, PT, Stream<T>> finderRepositoryMethod) {
+
+    public <PT> Response getByProperty(
+            UriInfo uriInfo, PT property, BiFunction<O, PT, Stream<T>> finderRepositoryMethod) {
         return owner.apply(uriInfo)
                 .map(o -> Response.ok(finderRepositoryMethod.apply(o, property).toList()))
                 .orElseGet(() -> Response.status(Response.Status.NOT_FOUND))

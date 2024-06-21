@@ -6,7 +6,7 @@ import java.util.Set;
 import javax.ws.rs.core.Application;
 
 public abstract class AbstractApiApplication extends Application {
-    
+
     private final Set<Class<?>> classes;
 
     public AbstractApiApplication() {
@@ -14,7 +14,7 @@ public abstract class AbstractApiApplication extends Application {
         this.addClass(RootResource.class);
         this.addClass(ObjectMapperResolver.class);
     }
-    
+
     public void addClass(Class<?> cls) {
         this.classes.add(cls);
     }

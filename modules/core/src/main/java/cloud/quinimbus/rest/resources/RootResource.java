@@ -9,9 +9,9 @@ import javax.ws.rs.core.MediaType;
 @Path("/")
 @ApplicationScoped
 public class RootResource {
-    
+
     public record RootView(String appname) {}
-    
+
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public RootView getAppInfo() {

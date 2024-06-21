@@ -26,7 +26,7 @@ public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEnt
         super(entityType, keyType);
         this.repository = repository;
     }
-    
+
     public Optional<T> findEntityById(UriInfo uriInfo) {
         var id = getId(uriInfo);
         return this.repository.findOne(id);
@@ -40,7 +40,7 @@ public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEnt
                 .orElseGet(() -> Response.status(Response.Status.NOT_FOUND))
                 .build();
     }
-    
+
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     public Response replace(T entity) {
@@ -51,7 +51,8 @@ public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEnt
     @DELETE
     public Response deleteById(@Context UriInfo uriInfo) {
         var id = getId(uriInfo);
-        return this.repository.findOne(id)
+        return this.repository
+                .findOne(id)
                 .map(e -> {
                     this.repository.remove(id);
                     return Response.accepted();
