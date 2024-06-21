@@ -8,6 +8,7 @@ import java.util.stream.Stream;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -29,6 +30,16 @@ public class AbstractWeakCrudAllResource<T, K, O> {
     public Response getAll(@Context UriInfo uriInfo) {
         return owner.apply(uriInfo)
                 .map(o -> Response.ok(this.repository.findAll(o)))
+                .orElseGet(() -> Response.status(Response.Status.NOT_FOUND))
+                .build();
+    }
+
+    @GET
+    @Path("/as/ids")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getAllIDs(@Context UriInfo uriInfo) {
+        return owner.apply(uriInfo)
+                .map(o -> Response.ok(this.repository.findAllIDs(o)))
                 .orElseGet(() -> Response.status(Response.Status.NOT_FOUND))
                 .build();
     }
