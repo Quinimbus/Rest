@@ -1,16 +1,21 @@
 package cloud.quinimbus.rest.crud;
 
+import cloud.quinimbus.binarystore.api.BinaryStoreException;
+import cloud.quinimbus.binarystore.persistence.EmbeddableBinary;
 import cloud.quinimbus.persistence.repositories.CRUDRepository;
+import cloud.quinimbus.tools.throwing.ThrowingOptional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import java.util.Optional;
+import java.util.function.Function;
 
 public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEntityResource<T, K> {
 
@@ -59,5 +64,18 @@ public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEnt
                 })
                 .orElseGet(() -> Response.status(Response.Status.NOT_FOUND))
                 .build();
+    }
+
+    public Response downloadBinary(UriInfo uriInfo, Function<T, EmbeddableBinary> binaryGetter) {
+        try {
+            return ThrowingOptional.ofOptional(
+                            this.findEntityById(uriInfo).map(binaryGetter), BinaryStoreException.class)
+                    .map(b -> Response.ok(b.contentLoader().get(), b.contentType())
+                            .header("Content-Disposition", "attachment; filename=%s".formatted(b.id()))
+                            .build())
+                    .orElseGet(() -> Response.status(Response.Status.NOT_FOUND).build());
+        } catch (BinaryStoreException ex) {
+            throw new WebApplicationException(ex);
+        }
     }
 }

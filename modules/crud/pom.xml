@@ -24,6 +24,15 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>cloud.quinimbus</groupId>
+            <artifactId>binarystore-persistence</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>cloud.quinimbus</groupId>
+            <artifactId>tools</artifactId>
+        </dependency>
+        <dependency>
             <groupId>jakarta.xml.bind</groupId>
             <artifactId>jakarta.xml.bind-api</artifactId>
             <version>2.3.3</version>
