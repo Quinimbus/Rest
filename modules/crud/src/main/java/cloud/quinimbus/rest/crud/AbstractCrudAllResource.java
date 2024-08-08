@@ -97,4 +97,9 @@ public abstract class AbstractCrudAllResource<T, K> {
         }
         return entity;
     }
+
+    public <MT> Response getAllMapped(Function<T, MT> mapper) {
+        return Response.ok(this.repository.findAll().stream().map(mapper).toList())
+                .build();
+    }
 }

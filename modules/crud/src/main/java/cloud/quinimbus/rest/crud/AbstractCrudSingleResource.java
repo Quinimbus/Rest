@@ -78,4 +78,12 @@ public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEnt
             throw new WebApplicationException(ex);
         }
     }
+
+    public <MT> Response getByIdMapped(@Context UriInfo uriInfo, Function<T, MT> mapper) {
+        return this.findEntityById(uriInfo)
+                .map(mapper)
+                .map(Response::ok)
+                .orElseGet(() -> Response.status(Response.Status.NOT_FOUND))
+                .build();
+    }
 }
