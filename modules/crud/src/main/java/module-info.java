@@ -1,5 +1,6 @@
 module cloud.quinimbus.rest.crud {
     exports cloud.quinimbus.rest.crud;
+    exports cloud.quinimbus.rest.crud.common;
 
     requires cloud.quinimbus.binarystore.api;
     requires cloud.quinimbus.binarystore.persistence;
