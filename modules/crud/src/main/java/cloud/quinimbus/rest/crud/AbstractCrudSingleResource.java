@@ -2,6 +2,7 @@ package cloud.quinimbus.rest.crud;
 
 import cloud.quinimbus.binarystore.api.BinaryStoreException;
 import cloud.quinimbus.binarystore.persistence.EmbeddableBinary;
+import cloud.quinimbus.binarystore.persistence.EmbeddableBinaryBuilder;
 import cloud.quinimbus.persistence.repositories.CRUDRepository;
 import cloud.quinimbus.tools.throwing.ThrowingOptional;
 import jakarta.ws.rs.Consumes;
@@ -11,24 +12,39 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.EntityPart;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
+import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEntityResource<T, K> {
+
+    private final Class<T> entityType;
+
+    private final Map<String, BiFunction<T, EmbeddableBinary, T>> binaryWither;
 
     private final CRUDRepository<T, K> repository;
 
     // to allow CDI proxy creation
     public AbstractCrudSingleResource() {
         super(null, null);
+        this.binaryWither = null;
+        this.entityType = null;
         this.repository = null;
     }
 
     public AbstractCrudSingleResource(Class<T> entityType, Class<K> keyType, CRUDRepository<T, K> repository) {
         super(entityType, keyType);
+        this.binaryWither = new LinkedHashMap<>();
+        this.entityType = entityType;
         this.repository = repository;
     }
 
@@ -53,6 +69,22 @@ public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEnt
         return Response.accepted().build();
     }
 
+    @PUT
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public Response replaceByMultipart(List<EntityPart> parts) throws IOException {
+        var entity = parts.stream()
+                .filter(ep -> ep.getName().equalsIgnoreCase("entity"))
+                .findFirst()
+                .orElseThrow(() -> new WebApplicationException(Response.Status.BAD_REQUEST))
+                .getContent(this.entityType);
+        var entityRef = new AtomicReference<>(entity);
+        parts.stream()
+                .filter(ep -> !ep.getName().equalsIgnoreCase("entity"))
+                .forEach(ep -> entityRef.updateAndGet(e -> this.setBinaryData(e, ep)));
+        this.repository.save(entityRef.get());
+        return Response.accepted().build();
+    }
+
     @DELETE
     public Response deleteById(@Context UriInfo uriInfo) {
         var id = getId(uriInfo);
@@ -64,6 +96,22 @@ public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEnt
                 })
                 .orElseGet(() -> Response.status(Response.Status.NOT_FOUND))
                 .build();
+    }
+
+    public void addBinaryWither(String field, BiFunction<T, EmbeddableBinary, T> wither) {
+        this.binaryWither.put(field, wither);
+    }
+
+    private T setBinaryData(T entity, EntityPart part) {
+        var field = part.getName();
+        if (binaryWither.containsKey(field)) {
+            var binary = EmbeddableBinaryBuilder.builder()
+                    .contentType(part.getMediaType().toString())
+                    .newContent(part::getContent)
+                    .build();
+            return this.binaryWither.get(field).apply(entity, binary);
+        }
+        return entity;
     }
 
     public Response downloadBinary(UriInfo uriInfo, Function<T, EmbeddableBinary> binaryGetter) {
