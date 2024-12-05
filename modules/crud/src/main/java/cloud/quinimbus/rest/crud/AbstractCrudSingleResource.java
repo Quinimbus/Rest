@@ -2,8 +2,8 @@ package cloud.quinimbus.rest.crud;
 
 import cloud.quinimbus.binarystore.api.BinaryStoreException;
 import cloud.quinimbus.binarystore.persistence.EmbeddableBinary;
-import cloud.quinimbus.binarystore.persistence.EmbeddableBinaryBuilder;
 import cloud.quinimbus.persistence.repositories.CRUDRepository;
+import cloud.quinimbus.rest.crud.binary.MultipartBinaryHandler;
 import cloud.quinimbus.tools.throwing.ThrowingOptional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -17,35 +17,35 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import java.io.IOException;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.function.TriFunction;
 
 public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEntityResource<T, K> {
 
     private final Class<T> entityType;
 
-    private final Map<String, BiFunction<T, EmbeddableBinary, T>> binaryWither;
-
     private final CRUDRepository<T, K> repository;
+
+    private final MultipartBinaryHandler<T> multipartBinaryHandler;
 
     // to allow CDI proxy creation
     public AbstractCrudSingleResource() {
         super(null, null);
-        this.binaryWither = null;
         this.entityType = null;
         this.repository = null;
+        this.multipartBinaryHandler = null;
     }
 
     public AbstractCrudSingleResource(Class<T> entityType, Class<K> keyType, CRUDRepository<T, K> repository) {
         super(entityType, keyType);
-        this.binaryWither = new LinkedHashMap<>();
         this.entityType = entityType;
         this.repository = repository;
+        this.multipartBinaryHandler = new MultipartBinaryHandler(entityType);
     }
 
     public Optional<T> findEntityById(UriInfo uriInfo) {
@@ -78,9 +78,10 @@ public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEnt
                 .orElseThrow(() -> new WebApplicationException(Response.Status.BAD_REQUEST))
                 .getContent(this.entityType);
         var entityRef = new AtomicReference<>(entity);
-        parts.stream()
+        var otherParts = parts.stream()
                 .filter(ep -> !ep.getName().equalsIgnoreCase("entity"))
-                .forEach(ep -> entityRef.updateAndGet(e -> this.setBinaryData(e, ep)));
+                .collect(Collectors.toMap(EntityPart::getName, e -> e));
+        entityRef.updateAndGet(e -> this.multipartBinaryHandler.setBinaryData(e, otherParts));
         this.repository.save(entityRef.get());
         return Response.accepted().build();
     }
@@ -99,25 +100,27 @@ public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEnt
     }
 
     public void addBinaryWither(String field, BiFunction<T, EmbeddableBinary, T> wither) {
-        this.binaryWither.put(field, wither);
+        this.multipartBinaryHandler.addBinaryWither(field, wither);
     }
 
-    private T setBinaryData(T entity, EntityPart part) {
-        var field = part.getName();
-        if (binaryWither.containsKey(field)) {
-            var binary = EmbeddableBinaryBuilder.builder()
-                    .contentType(part.getMediaType().toString())
-                    .newContent(part::getContent)
-                    .build();
-            return this.binaryWither.get(field).apply(entity, binary);
-        }
-        return entity;
+    public void addBinaryListWither(String field, TriFunction<T, Integer, EmbeddableBinary, T> wither) {
+        this.multipartBinaryHandler.addBinaryListWither(field, wither);
+    }
+
+    public Response downloadBinaryFromList(UriInfo uriInfo, Function<T, List<EmbeddableBinary>> binaryListGetter) {
+        var index = Integer.parseInt(uriInfo.getPathParameters().getFirst("binaryPropertyIndex"));
+        var embededBinary = this.findEntityById(uriInfo).map(binaryListGetter).map(l -> l.get(index));
+        return downloadBinary(embededBinary);
     }
 
     public Response downloadBinary(UriInfo uriInfo, Function<T, EmbeddableBinary> binaryGetter) {
+        var embededBinary = this.findEntityById(uriInfo).map(binaryGetter);
+        return downloadBinary(embededBinary);
+    }
+
+    private Response downloadBinary(Optional<EmbeddableBinary> embededBinary) throws WebApplicationException {
         try {
-            return ThrowingOptional.ofOptional(
-                            this.findEntityById(uriInfo).map(binaryGetter), BinaryStoreException.class)
+            return ThrowingOptional.ofOptional(embededBinary, BinaryStoreException.class)
                     .map(b -> Response.ok(b.contentLoader().get(), b.contentType())
                             .header("Content-Disposition", "attachment; filename=%s".formatted(b.id()))
                             .build())
