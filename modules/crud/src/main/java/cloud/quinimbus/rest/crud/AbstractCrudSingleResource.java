@@ -5,15 +5,9 @@ import cloud.quinimbus.binarystore.persistence.EmbeddableBinary;
 import cloud.quinimbus.persistence.repositories.CRUDRepository;
 import cloud.quinimbus.rest.crud.binary.MultipartBinaryHandler;
 import cloud.quinimbus.tools.throwing.ThrowingOptional;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.PUT;
-import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.EntityPart;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import java.io.IOException;
@@ -53,24 +47,18 @@ public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEnt
         return this.repository.findOne(id);
     }
 
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getById(@Context UriInfo uriInfo) {
+    public Response getById(UriInfo uriInfo) {
         return this.findEntityById(uriInfo)
                 .map(Response::ok)
                 .orElseGet(() -> Response.status(Response.Status.NOT_FOUND))
                 .build();
     }
 
-    @PUT
-    @Consumes(MediaType.APPLICATION_JSON)
     public Response replace(T entity) {
         this.repository.save(entity);
         return Response.accepted().build();
     }
 
-    @PUT
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response replaceByMultipart(List<EntityPart> parts) throws IOException {
         var entity = parts.stream()
                 .filter(ep -> ep.getName().equalsIgnoreCase("entity"))
@@ -86,7 +74,6 @@ public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEnt
         return Response.accepted().build();
     }
 
-    @DELETE
     public Response deleteById(@Context UriInfo uriInfo) {
         var id = getId(uriInfo);
         return this.repository

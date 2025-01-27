@@ -3,14 +3,8 @@ package cloud.quinimbus.rest.crud;
 import cloud.quinimbus.binarystore.persistence.EmbeddableBinary;
 import cloud.quinimbus.persistence.repositories.CRUDRepository;
 import cloud.quinimbus.rest.crud.binary.MultipartBinaryHandler;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.EntityPart;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.List;
@@ -42,28 +36,19 @@ public abstract class AbstractCrudAllResource<T, K> {
         this.multipartBinaryHandler = new MultipartBinaryHandler(entityType);
     }
 
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
     public Response getAll() {
         return Response.ok(this.repository.findAll()).build();
     }
 
-    @GET
-    @Path("/as/ids")
-    @Produces(MediaType.APPLICATION_JSON)
     public Response getAllIDs() {
         return Response.ok(this.repository.findAllIDs()).build();
     }
 
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
     public Response postNew(T entity) {
         this.repository.save(entity);
         return Response.accepted().build();
     }
 
-    @POST
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response postNewByMultipart(List<EntityPart> parts) throws IOException {
         var entity = parts.stream()
                 .filter(ep -> ep.getName().equalsIgnoreCase("entity"))

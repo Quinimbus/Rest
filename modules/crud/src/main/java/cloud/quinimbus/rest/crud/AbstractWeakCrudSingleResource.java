@@ -1,13 +1,6 @@
 package cloud.quinimbus.rest.crud;
 
 import cloud.quinimbus.persistence.repositories.WeakCRUDRepository;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.PUT;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import java.util.Optional;
@@ -32,9 +25,7 @@ public abstract class AbstractWeakCrudSingleResource<T, K, O> extends AbstractSi
         this.repository = repository;
     }
 
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getById(@Context UriInfo uriInfo) {
+    public Response getById(UriInfo uriInfo) {
         return owner.apply(uriInfo)
                 .flatMap(o -> this.repository.findOne(o, getId(uriInfo)))
                 .map(Response::ok)
@@ -42,15 +33,12 @@ public abstract class AbstractWeakCrudSingleResource<T, K, O> extends AbstractSi
                 .build();
     }
 
-    @PUT
-    @Consumes(MediaType.APPLICATION_JSON)
     public Response replace(T entity) {
         this.repository.save(entity);
         return Response.accepted().build();
     }
 
-    @DELETE
-    public Response deleteById(@Context UriInfo uriInfo) {
+    public Response deleteById(UriInfo uriInfo) {
         var id = getId(uriInfo);
         return owner.apply(uriInfo)
                 .flatMap(o -> this.repository.findOne(o, id).map(e -> {
