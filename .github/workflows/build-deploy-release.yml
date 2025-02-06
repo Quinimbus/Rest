@@ -41,3 +41,4 @@ jobs:
           files: |
             modules/core/target/*.jar
             modules/crud/target/*.jar
+            modules/quarkus/target/*.jar
