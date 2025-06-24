@@ -37,13 +37,15 @@ public class MultipartBinaryHandler<T> {
             try {
                 var getter = this.entityType.getDeclaredMethod(binaryField.getKey());
                 var binary = (EmbeddableBinary) getter.invoke(entity);
-                if (binary.multipartId() != null) {
-                    var part = parts.get(binary.multipartId());
-                    var newBinary = EmbeddableBinaryBuilder.builder()
-                            .contentType(part.getMediaType().toString())
-                            .newContent(part::getContent)
-                            .build();
-                    entity = binaryField.getValue().apply(entity, newBinary);
+                if (binary != null) {
+                    if (binary.multipartId() != null) {
+                        var part = parts.get(binary.multipartId());
+                        var newBinary = EmbeddableBinaryBuilder.builder()
+                                .contentType(part.getMediaType().toString())
+                                .newContent(part::getContent)
+                                .build();
+                        entity = binaryField.getValue().apply(entity, newBinary);
+                    }
                 }
             } catch (NoSuchMethodException
                     | SecurityException
@@ -56,20 +58,22 @@ public class MultipartBinaryHandler<T> {
             try {
                 var getter = this.entityType.getDeclaredMethod(binaryListField.getKey());
                 var binaryList = (List<EmbeddableBinary>) getter.invoke(entity);
-                for (int i = 0; i < binaryList.size(); i++) {
-                    var binary = binaryList.get(i);
-                    if (binary.multipartId() != null) {
-                        var part = parts.get(binary.multipartId());
-                        if (part == null) {
-                            throw new IllegalArgumentException(
-                                    "Missing part in multipart request referenced in the entity: %s"
-                                            .formatted(binary.multipartId()));
+                if (binaryList != null) {
+                    for (int i = 0; i < binaryList.size(); i++) {
+                        var binary = binaryList.get(i);
+                        if (binary.multipartId() != null) {
+                            var part = parts.get(binary.multipartId());
+                            if (part == null) {
+                                throw new IllegalArgumentException(
+                                        "Missing part in multipart request referenced in the entity: %s"
+                                                .formatted(binary.multipartId()));
+                            }
+                            var newBinary = EmbeddableBinaryBuilder.builder()
+                                    .contentType(part.getMediaType().toString())
+                                    .newContent(part::getContent)
+                                    .build();
+                            entity = binaryListField.getValue().apply(entity, i, newBinary);
                         }
-                        var newBinary = EmbeddableBinaryBuilder.builder()
-                                .contentType(part.getMediaType().toString())
-                                .newContent(part::getContent)
-                                .build();
-                        entity = binaryListField.getValue().apply(entity, i, newBinary);
                     }
                 }
             } catch (NoSuchMethodException
