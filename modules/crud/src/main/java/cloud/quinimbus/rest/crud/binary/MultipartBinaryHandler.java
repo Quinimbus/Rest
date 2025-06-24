@@ -60,6 +60,11 @@ public class MultipartBinaryHandler<T> {
                     var binary = binaryList.get(i);
                     if (binary.multipartId() != null) {
                         var part = parts.get(binary.multipartId());
+                        if (part == null) {
+                            throw new IllegalArgumentException(
+                                    "Missing part in multipart request referenced in the entity: %s"
+                                            .formatted(binary.multipartId()));
+                        }
                         var newBinary = EmbeddableBinaryBuilder.builder()
                                 .contentType(part.getMediaType().toString())
                                 .newContent(part::getContent)
