@@ -96,7 +96,10 @@ public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEnt
 
     public Response downloadBinaryFromList(UriInfo uriInfo, Function<T, List<EmbeddableBinary>> binaryListGetter) {
         var index = Integer.parseInt(uriInfo.getPathParameters().getFirst("binaryPropertyIndex"));
-        var embededBinary = this.findEntityById(uriInfo).map(binaryListGetter).map(l -> l.get(index));
+        var embededBinary = this.findEntityById(uriInfo)
+                .map(binaryListGetter)
+                .filter(l -> l != null && l.size() > index)
+                .map(l -> l.get(index));
         return downloadBinary(embededBinary);
     }
 
