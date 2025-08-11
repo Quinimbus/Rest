@@ -4,7 +4,7 @@
     <groupId>cloud.quinimbus</groupId>
     <artifactId>rest-core</artifactId>
     <version>0.1-SNAPSHOT</version>
-    <name>QuiNimbus Rest Integration</name>
+    <name>QuiNimbus Rest Core</name>
     <packaging>jar</packaging>
     
     <parent>
