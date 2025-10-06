@@ -3,11 +3,14 @@ package cloud.quinimbus.rest.crud.binary;
 import cloud.quinimbus.binarystore.persistence.EmbeddableBinary;
 import cloud.quinimbus.binarystore.persistence.EmbeddableBinaryBuilder;
 import jakarta.ws.rs.core.EntityPart;
+import java.io.BufferedInputStream;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.function.TriFunction;
 
 public class MultipartBinaryHandler<T> {
@@ -42,7 +45,7 @@ public class MultipartBinaryHandler<T> {
                         var part = parts.get(binary.multipartId());
                         var newBinary = EmbeddableBinaryBuilder.builder()
                                 .contentType(part.getMediaType().toString())
-                                .newContent(part::getContent)
+                                .newContent(forceMarkResetSupport(part::getContent)::get)
                                 .build();
                         entity = binaryField.getValue().apply(entity, newBinary);
                     }
@@ -84,5 +87,12 @@ public class MultipartBinaryHandler<T> {
             }
         }
         return entity;
+    }
+
+    private Supplier<InputStream> forceMarkResetSupport(Supplier<InputStream> suppl) {
+        return () -> {
+            var is = suppl.get();
+            return is.markSupported() ? is : new BufferedInputStream(is);
+        };
     }
 }
