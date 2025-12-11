@@ -114,7 +114,7 @@ public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEnt
             if (embededBinary
                     .map(EmbeddableBinary::id)
                     .filter(not(String::isBlank))
-                    .isPresent()) {
+                    .isEmpty()) {
                 return Response.status(Response.Status.NOT_FOUND)
                         .entity("requested binary is missing an id")
                         .build();
