@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import static java.util.function.Predicate.not;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.function.TriFunction;
 
@@ -110,11 +111,21 @@ public abstract class AbstractCrudSingleResource<T, K> extends AbstractSingleEnt
 
     private Response downloadBinary(Optional<EmbeddableBinary> embededBinary) throws WebApplicationException {
         try {
+            if (embededBinary
+                    .map(EmbeddableBinary::id)
+                    .filter(not(String::isBlank))
+                    .isPresent()) {
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity("requested binary is missing an id")
+                        .build();
+            }
             return ThrowingOptional.ofOptional(embededBinary, BinaryStoreException.class)
                     .map(b -> Response.ok(b.contentLoader().get(), b.contentType())
                             .header("Content-Disposition", "attachment; filename=%s".formatted(b.id()))
                             .build())
-                    .orElseGet(() -> Response.status(Response.Status.NOT_FOUND).build());
+                    .orElseGet(() -> Response.status(Response.Status.NOT_FOUND)
+                            .entity("requested binary not found")
+                            .build());
         } catch (BinaryStoreException ex) {
             throw new WebApplicationException(ex);
         }
